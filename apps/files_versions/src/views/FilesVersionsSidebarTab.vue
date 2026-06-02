@@ -48,7 +48,8 @@ import { showError, showSuccess } from '@nextcloud/dialogs'
 import { emit } from '@nextcloud/event-bus'
 import { t } from '@nextcloud/l10n'
 import { useIsMobile } from '@nextcloud/vue/composables/useIsMobile'
-import { computed, ref, toRef, watch } from 'vue'
+import { watchDebounced } from '@vueuse/core'
+import { computed, ref } from 'vue'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import VersionEntry from '../components/VersionEntry.vue'
 import VersionLabelDialog from '../components/VersionLabelDialog.vue'
@@ -71,19 +72,6 @@ const versions = ref<Version[]>([])
 const loading = ref(false)
 const showVersionLabelForm = ref(false)
 const editedVersion = ref<Version | null>(null)
-
-watch(toRef(() => props.node), async () => {
-	if (!props.node) {
-		return
-	}
-
-	try {
-		loading.value = true
-		versions.value = await fetchVersions(props.node)
-	} finally {
-		loading.value = false
-	}
-}, { immediate: true })
 
 const currentVersionMtime = computed(() => props.node?.mtime?.getTime() ?? 0)
 
@@ -138,6 +126,16 @@ const canCompare = computed(() => {
 	return !isMobile.value
 		&& window.OCA.Viewer?.mimetypesCompare?.includes(props.node?.mime)
 })
+
+// when either the current node to show or its mtime changes we need to refetch the versions
+watchDebounced([() => props.node.id, currentVersionMtime], async () => {
+	try {
+		loading.value = true
+		versions.value = await fetchVersions(props.node)
+	} finally {
+		loading.value = false
+	}
+}, { immediate: true, debounce: 600 })
 
 /**
  * Handle restored event from Version.vue
