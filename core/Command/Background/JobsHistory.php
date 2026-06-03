@@ -75,7 +75,7 @@ final class JobsHistory extends Base {
 	private function formatLine(iterable $jobs): \Generator {
 		$jobsInfo = [];
 		$now = time();
-		$currentServerId = $this->config->getSystemValueInt('serverid', -1);
+		$currentServerId = Util::getServerId();
 		foreach ($jobs as $job) {
 			$status = match ($job->status) {
 				JobStatus::RUNNING => 'Running',

@@ -246,9 +246,7 @@ class Util {
 	 */
 	public static function linkToAbsolute($app, $file, $args = []) {
 		$urlGenerator = Server::get(IURLGenerator::class);
-		return $urlGenerator->getAbsoluteURL(
-			$urlGenerator->linkTo($app, $file, $args)
-		);
+		return $urlGenerator->getAbsoluteURL($urlGenerator->linkTo($app, $file, $args));
 	}
 
 	/**
@@ -277,6 +275,25 @@ class Util {
 			$host_name = substr($host_name, 0, $colon_pos);
 		}
 		return $host_name;
+	}
+
+	/**
+	 * Returns configured Server ID or use default fallback
+	 * @since 34.0.1
+	 */
+	public static function getServerId() {
+		$config = Server::get(IConfig::class);
+
+		$serverid = $config->getSystemValueInt('serverid', -1);
+		if ($serverid < 1) {
+			// Fallback: generates a server ID based on hostname
+			// or random bytes if hostname isn't available
+			/** @var int<0,max> */
+			$serverid = hexdec(hash('xxh32', gethostname() ?: random_bytes(8)));
+		}
+
+		/** @var int<0,511> */
+		return $serverid & 0x1FF;
 	}
 
 	/**
@@ -483,7 +500,7 @@ class Util {
 	 * @since 4.5.0
 	 */
 	public static function mb_array_change_key_case($input, $case = MB_CASE_LOWER, $encoding = 'UTF-8') {
-		$case = ($case !== MB_CASE_UPPER) ? MB_CASE_LOWER : MB_CASE_UPPER;
+		$case = $case !== MB_CASE_UPPER ? MB_CASE_LOWER : MB_CASE_UPPER;
 		$ret = [];
 		foreach ($input as $k => $v) {
 			$ret[mb_convert_case($k, $case, $encoding)] = $v;
@@ -518,7 +535,7 @@ class Util {
 			$freeSpace = max($freeSpace, 0);
 			return $freeSpace;
 		} else {
-			return (INF > 0)? INF: PHP_INT_MAX; // work around https://bugs.php.net/bug.php?id=69188
+			return INF > 0 ? INF : PHP_INT_MAX; // work around https://bugs.php.net/bug.php?id=69188
 		}
 	}
 
